@@ -92,11 +92,11 @@ function tryParseConfig(filePath) {
  */
 export function resolveConfig(cwd) {
   // Global: env var takes priority, then ~/.claude/permissions.json
-  // Support legacy CLAUDE_HOOK_CONFIG with deprecation warning
-  let envPath = process.env.CLAUDE_PERMISSIONS_CONFIG;
+  // Support NYOLO_CONFIG, CLAUDE_PERMISSIONS_CONFIG, and legacy CLAUDE_HOOK_CONFIG
+  let envPath = process.env.NYOLO_CONFIG || process.env.CLAUDE_PERMISSIONS_CONFIG;
   if (!envPath && process.env.CLAUDE_HOOK_CONFIG) {
     envPath = process.env.CLAUDE_HOOK_CONFIG;
-    process.stderr.write("[DEPRECATION] CLAUDE_HOOK_CONFIG is deprecated, use CLAUDE_PERMISSIONS_CONFIG instead\n");
+    process.stderr.write("[DEPRECATION] CLAUDE_HOOK_CONFIG is deprecated, use NYOLO_CONFIG instead\n");
   }
 
   const globalConfig =

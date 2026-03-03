@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 /**
  * nyolo CLI entry point
@@ -18,7 +18,6 @@ import { configure, log } from "../src/logger.js";
 import { homedir } from "os";
 import { join, dirname } from "path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { fileURLToPath } from "url";
 
 const args = process.argv.slice(2);
 const subcommand = args[0];
@@ -50,9 +49,15 @@ switch (subcommand) {
 
 // --- Hook mode ---
 
+async function readStdin() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString();
+}
+
 async function runHook() {
   try {
-    const input = await Bun.stdin.text();
+    const input = await readStdin();
     const event = JSON.parse(input);
 
     const configs = resolveConfig(event.cwd);
@@ -94,8 +99,7 @@ function getSettingsPath() {
 }
 
 function getHookCmd() {
-  const selfPath = fileURLToPath(import.meta.url);
-  return `bun "${selfPath}"`;
+  return "npx nyolo";
 }
 
 async function runInstall() {

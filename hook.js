@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 /**
  * @typedef {Object} HookEvent
@@ -17,9 +17,15 @@ import { loadRules } from "./src/rules.js";
 import { resolveConfig } from "./src/config.js";
 import { configure, log } from "./src/logger.js";
 
+async function readStdin() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString();
+}
+
 try {
   // Read event from stdin
-  const input = await Bun.stdin.text();
+  const input = await readStdin();
   /** @type {HookEvent} */
   const event = JSON.parse(input);
 

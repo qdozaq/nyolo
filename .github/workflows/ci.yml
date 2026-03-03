@@ -20,7 +20,7 @@ jobs:
         run: bun install
 
       - name: Run tests
-        run: bun test tests/engine.test.js tests/config.test.js
+        run: bun test
 
       - name: Smoke test CLI
         run: bun bin/nyolo.js test

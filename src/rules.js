@@ -1,4 +1,6 @@
-import defaults from "./defaults.json" with { type: "json" };
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const defaults = require("./defaults.json");
 
 /**
  * @typedef {Object} HookConfig
