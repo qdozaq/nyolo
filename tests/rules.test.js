@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import {
-  defaults, loadRules, getDefaults,
+  defaults, recommended, defineConfig,
   filesystem, cloud, git, network, database,
   system, container, protection, sensitive, warnings,
 } from "../src/rules.js";
@@ -259,7 +259,6 @@ describe("default rules - git destructive", () => {
   });
 
   test("allows git push --force-with-lease (safe force push)", () => {
-    // --force-with-lease is safer than --force and should NOT be blocked
     expect(check("git push --force-with-lease").decision).toBe("allow");
   });
 
@@ -457,7 +456,6 @@ describe("default rules - sensitive files", () => {
   });
 
   test("does not block Bash tool for .env files", () => {
-    // The .env rule only applies to Write|Edit, not Bash
     expect(evaluate("Bash", { file_path: "/project/.env" }, defaults).decision).toBe("allow");
   });
 });
@@ -723,170 +721,6 @@ describe("commands inside bash control structures", () => {
   });
 });
 
-// --- loadRules ---
-
-describe("loadRules", () => {
-  test("returns defaults when no configs provided", () => {
-    const rules = loadRules();
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("returns defaults when both configs are null", () => {
-    const rules = loadRules({ global: null, project: null });
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("prepends global user rules before defaults", () => {
-    const userRule = { name: "user-rule", match: () => false, action: "allow", reason: "test" };
-    const rules = loadRules({ global: { rules: [userRule] } });
-    expect(rules[0].name).toBe("user-rule");
-    expect(rules.length).toBe(defaults.length + 1);
-  });
-
-  test("global config disables specified defaults", () => {
-    const rules = loadRules({ global: { disableDefaults: ["no-rm-rf-root"] } });
-    expect(rules.find((r) => r.name === "no-rm-rf-root")).toBeUndefined();
-    expect(rules.length).toBe(defaults.length - 1);
-  });
-
-  test("global config disables multiple defaults", () => {
-    const rules = loadRules({ global: { disableDefaults: ["no-rm-rf-root", "no-sudo", "no-cloud-aws"] } });
-    expect(rules.find((r) => r.name === "no-rm-rf-root")).toBeUndefined();
-    expect(rules.find((r) => r.name === "no-sudo")).toBeUndefined();
-    expect(rules.find((r) => r.name === "no-cloud-aws")).toBeUndefined();
-    expect(rules.length).toBe(defaults.length - 3);
-  });
-
-  test("global useDefaults: false returns only custom rules", () => {
-    const userRule = { name: "user-rule", match: () => false, action: "allow", reason: "test" };
-    const rules = loadRules({ global: { useDefaults: false, rules: [userRule] } });
-    expect(rules.length).toBe(1);
-    expect(rules[0].name).toBe("user-rule");
-  });
-
-  test("global useDefaults: false with no rules returns empty array", () => {
-    const rules = loadRules({ global: { useDefaults: false } });
-    expect(rules.length).toBe(0);
-  });
-
-  test("global useDefaults: false ignores disableDefaults", () => {
-    const userRule = { name: "user-rule", match: () => false, action: "allow", reason: "test" };
-    const rules = loadRules({ global: { useDefaults: false, rules: [userRule], disableDefaults: ["no-sudo"] } });
-    expect(rules.length).toBe(1);
-  });
-
-  test("empty global config includes all defaults", () => {
-    const rules = loadRules({ global: {} });
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("global allow rule overrides default deny (first-match-wins)", () => {
-    const config = {
-      rules: [{
-        name: "allow-aws-s3-ls",
-        tool: "Bash",
-        match: (input) => /^aws s3 ls/.test(input.command),
-        action: "allow",
-        reason: "listing is safe",
-      }],
-    };
-    const rules = loadRules({ global: config });
-    const result = evaluate("Bash", { command: "aws s3 ls" }, rules);
-    expect(result.decision).toBe("allow");
-    expect(result.rule).toBe("allow-aws-s3-ls");
-  });
-
-  test("global deny rule takes priority over later default allow", () => {
-    const config = {
-      rules: [{
-        name: "block-npm-install",
-        tool: "Bash",
-        match: (input) => /\bnpm\s+install\b/.test(input.command),
-        action: "deny",
-        reason: "no installing",
-      }],
-    };
-    const rules = loadRules({ global: config });
-    const result = evaluate("Bash", { command: "npm install" }, rules);
-    expect(result.decision).toBe("deny");
-    expect(result.rule).toBe("block-npm-install");
-  });
-});
-
-// --- Project config security (additive-only) ---
-
-describe("loadRules - project config security", () => {
-  test("project deny rules are included", () => {
-    const projectRule = { name: "proj-deny", tool: "Bash", match: { command: "\\becho\\b" }, action: "deny", reason: "no echo" };
-    const rules = loadRules({ project: { rules: [projectRule] } });
-    expect(rules[0].name).toBe("proj-deny");
-    expect(rules.length).toBe(defaults.length + 1);
-  });
-
-  test("project ask rules are included", () => {
-    const projectRule = { name: "proj-ask", tool: "Bash", match: { command: "\\becho\\b" }, action: "ask", reason: "confirm echo" };
-    const rules = loadRules({ project: { rules: [projectRule] } });
-    expect(rules[0].name).toBe("proj-ask");
-  });
-
-  test("project allow rules are FILTERED OUT by default", () => {
-    const projectRule = { name: "proj-allow", tool: "Bash", match: { command: "\\brm\\b" }, action: "allow", reason: "allow rm" };
-    const rules = loadRules({ project: { rules: [projectRule] } });
-    expect(rules.find((r) => r.name === "proj-allow")).toBeUndefined();
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("project cannot disable defaults without global opt-in", () => {
-    const rules = loadRules({ project: { disableDefaults: ["no-rm-rf-root"] } });
-    expect(rules.find((r) => r.name === "no-rm-rf-root")).toBeDefined();
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("project cannot set useDefaults: false without global opt-in", () => {
-    const rules = loadRules({ project: { useDefaults: false, rules: [] } });
-    // useDefaults only honored on global — project config cannot disable defaults
-    expect(rules.length).toBe(defaults.length);
-  });
-
-  test("global allowProjectOverrides: true permits project allow rules", () => {
-    const projectRule = { name: "proj-allow", tool: "Bash", match: { command: "\\brm\\b" }, action: "allow", reason: "allow rm" };
-    const rules = loadRules({
-      global: { allowProjectOverrides: true },
-      project: { rules: [projectRule] },
-    });
-    expect(rules[0].name).toBe("proj-allow");
-  });
-
-  test("global allowProjectOverrides: true permits project disableDefaults", () => {
-    const rules = loadRules({
-      global: { allowProjectOverrides: true },
-      project: { disableDefaults: ["no-rm-rf-root"] },
-    });
-    expect(rules.find((r) => r.name === "no-rm-rf-root")).toBeUndefined();
-  });
-
-  test("project deny rules come before global rules (first-match-wins)", () => {
-    const globalRule = { name: "global-allow", tool: "Bash", match: { command: "*echo*" }, action: "allow", reason: "global allows" };
-    const projectRule = { name: "proj-deny", tool: "Bash", match: { command: "*echo*" }, action: "deny", reason: "project denies" };
-    const rules = loadRules({
-      global: { rules: [globalRule] },
-      project: { rules: [projectRule] },
-    });
-    const result = evaluate("Bash", { command: "echo hello" }, rules);
-    expect(result.decision).toBe("deny");
-    expect(result.rule).toBe("proj-deny");
-  });
-
-  test("malicious project config with useDefaults:false and empty rules still gets defaults", () => {
-    const rules = loadRules({
-      project: { useDefaults: false, rules: [], disableDefaults: ["no-rm-rf-root", "no-sudo"] },
-    });
-    expect(rules.length).toBe(defaults.length);
-    expect(rules.find((r) => r.name === "no-rm-rf-root")).toBeDefined();
-    expect(rules.find((r) => r.name === "no-sudo")).toBeDefined();
-  });
-});
-
 // --- Category exports ---
 
 describe("category exports", () => {
@@ -926,21 +760,55 @@ describe("category exports", () => {
     }
   });
 
-  test("composing categories with useDefaults: false (global config)", () => {
-    const rules = loadRules({
-      global: { useDefaults: false, rules: [...filesystem, ...git] },
-    });
-    expect(rules.length).toBe(filesystem.length + git.length);
-    const names = new Set(rules.map((r) => r.name));
+  test("composing categories produces the right rules", () => {
+    const composed = [...filesystem, ...git];
+    expect(composed.length).toBe(filesystem.length + git.length);
+    const names = new Set(composed.map((r) => r.name));
     expect(names.has("no-rm-rf-root")).toBe(true);
     expect(names.has("no-git-force-push")).toBe(true);
     expect(names.has("no-cloud-aws")).toBe(false);
   });
 });
 
-// --- Defaults are declarative JSON objects ---
+// --- recommended preset ---
 
-describe("defaults structure (JSON format)", () => {
+describe("recommended preset", () => {
+  test("recommended contains all defaults", () => {
+    expect(recommended.length).toBe(defaults.length);
+    expect(recommended).toEqual(defaults);
+  });
+
+  test("recommended is a separate array (not same reference)", () => {
+    expect(recommended).not.toBe(defaults);
+  });
+});
+
+// --- defineConfig ---
+
+describe("defineConfig", () => {
+  test("returns the same array passed in (identity)", () => {
+    const input = [...filesystem, ...git];
+    expect(defineConfig(input)).toBe(input);
+  });
+
+  test("works with empty array", () => {
+    expect(defineConfig([])).toEqual([]);
+  });
+
+  test("works with custom rules", () => {
+    const custom = [
+      ...recommended,
+      { name: "custom", tool: "Bash", match: { command: "*test*" }, action: "deny", reason: "test" },
+    ];
+    const result = defineConfig(custom);
+    expect(result.length).toBe(recommended.length + 1);
+    expect(result[result.length - 1].name).toBe("custom");
+  });
+});
+
+// --- Defaults structure ---
+
+describe("defaults structure", () => {
   test("all defaults have declarative match objects (not functions)", () => {
     for (const rule of defaults) {
       expect(typeof rule.match).toBe("object");
@@ -986,79 +854,5 @@ describe("defaults structure (JSON format)", () => {
 
   test("defaults count is 35 rules", () => {
     expect(defaults.length).toBe(35);
-  });
-});
-
-// --- getDefaults ---
-
-describe("getDefaults", () => {
-  test("returns all defaults when no categories specified", () => {
-    const all = getDefaults();
-    expect(all.length).toBe(defaults.length);
-  });
-
-  test("filters by single category", () => {
-    const fs = getDefaults(["filesystem"]);
-    expect(fs.length).toBe(filesystem.length);
-    expect(fs.every((r) => r.category === "filesystem")).toBe(true);
-  });
-
-  test("filters by multiple categories", () => {
-    const subset = getDefaults(["filesystem", "git"]);
-    expect(subset.length).toBe(filesystem.length + git.length);
-    expect(subset.every((r) => ["filesystem", "git"].includes(r.category))).toBe(true);
-  });
-
-  test("returns empty array for nonexistent category", () => {
-    const none = getDefaults(["nonexistent"]);
-    expect(none.length).toBe(0);
-  });
-
-  test("returns empty array for empty categories array", () => {
-    const none = getDefaults([]);
-    expect(none.length).toBe(0);
-  });
-});
-
-// --- loadRules with declarative user rules ---
-
-describe("loadRules — declarative user rules (global config)", () => {
-  test("prepends declarative user rules before defaults", () => {
-    const userRule = {
-      name: "user-rule",
-      tool: "Bash",
-      match: { command: "^echo$" },
-      action: "deny",
-      reason: "test",
-    };
-    const rules = loadRules({ global: { rules: [userRule] } });
-    expect(rules[0].name).toBe("user-rule");
-    expect(rules.length).toBe(defaults.length + 1);
-  });
-
-  test("declarative user allow rule overrides default deny", () => {
-    const rules = loadRules({ global: { rules: [{
-      name: "allow-aws-s3-ls",
-      tool: "Bash",
-      match: { command: "aws s3 ls*" },
-      action: "allow",
-      reason: "listing is safe",
-    }] } });
-    const result = evaluate("Bash", { command: "aws s3 ls" }, rules);
-    expect(result.decision).toBe("allow");
-    expect(result.rule).toBe("allow-aws-s3-ls");
-  });
-
-  test("declarative user deny rule takes priority over default allow", () => {
-    const rules = loadRules({ global: { rules: [{
-      name: "block-npm-install",
-      tool: "Bash",
-      match: { command: "*npm install*" },
-      action: "deny",
-      reason: "no installing",
-    }] } });
-    const result = evaluate("Bash", { command: "npm install" }, rules);
-    expect(result.decision).toBe("deny");
-    expect(result.rule).toBe("block-npm-install");
   });
 });

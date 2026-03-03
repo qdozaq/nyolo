@@ -13,9 +13,8 @@
  */
 
 import { evaluate } from "./src/engine.js";
-import { loadRules } from "./src/rules.js";
 import { resolveConfig } from "./src/config.js";
-import { configure, log } from "./src/logger.js";
+import { log } from "./src/logger.js";
 
 async function readStdin() {
   const chunks = [];
@@ -29,12 +28,8 @@ try {
   /** @type {HookEvent} */
   const event = JSON.parse(input);
 
-  // Load configs: global (trusted) + project (untrusted, additive-only)
-  const configs = resolveConfig(event.cwd);
-  configure(configs.global || {});
-
-  // Load and evaluate rules (project deny/ask only unless global opts in)
-  const rules = loadRules(configs);
+  // Resolve config: flat rules array from nyolo.config.js files
+  const rules = await resolveConfig(event.cwd);
   const result = evaluate(event.tool_name, event.tool_input, rules);
 
   // Output decision

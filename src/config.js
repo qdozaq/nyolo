@@ -1,112 +1,85 @@
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
 import { join } from "path";
-import { readFileSync } from "fs";
+import { existsSync, copyFileSync, mkdtempSync, rmSync } from "fs";
+import { pathToFileURL } from "url";
+import { recommended } from "./rules.js";
 
 /**
- * @typedef {Object} PermissionsConfig
- * @property {boolean} [useDefaults] - Include default rules (default: true)
- * @property {import("./engine.js").DeclarativeRule[]} [rules] - Custom rules (prepended before defaults)
- * @property {string[]} [disableDefaults] - Default rule names to disable
- * @property {boolean} [allowProjectOverrides] - Allow project configs to use "allow" rules and disableDefaults (default: false)
- * @property {import("./logger.js").LogLevel} [logLevel]
- * @property {string | null} [logFile]
+ * @typedef {Object} ConfigResult
+ * @property {import("./engine.js").DeclarativeRule[]} rules
+ * @property {boolean} noDefaults - If true, do not auto-append default rules
  */
 
 /**
- * @typedef {Object} ResolvedConfigs
- * @property {PermissionsConfig | null} global - Global config (~/.claude/permissions.json or env var)
- * @property {PermissionsConfig | null} project - Project config (<cwd>/.claude-permissions.json)
- */
-
-/**
- * Strip single-line (//) and multi-line comments from JSON string.
- * Preserves strings containing // or comment-like content.
- * @param {string} text
- * @returns {string}
- */
-export function stripJsonComments(text) {
-  let result = "";
-  let i = 0;
-  let inString = false;
-
-  while (i < text.length) {
-    if (inString) {
-      if (text[i] === "\\" && i + 1 < text.length) {
-        result += text[i] + text[i + 1];
-        i += 2;
-        continue;
-      }
-      if (text[i] === '"') inString = false;
-      result += text[i++];
-    } else if (text[i] === '"') {
-      inString = true;
-      result += text[i++];
-    } else if (text[i] === "/" && text[i + 1] === "/") {
-      while (i < text.length && text[i] !== "\n") i++;
-    } else if (text[i] === "/" && text[i + 1] === "*") {
-      i += 2;
-      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
-      i += 2;
-    } else {
-      result += text[i++];
-    }
-  }
-  return result;
-}
-
-/**
- * Read and parse a JSONC file (JSON with comments).
+ * Dynamically import a JS config file.
+ * Copies to a unique temp path before importing to bypass Bun's ESM cache
+ * (Bun ignores query strings on file:// URLs for cache invalidation).
  * @param {string} filePath
- * @returns {PermissionsConfig | null}
+ * @returns {Promise<ConfigResult | null>}
  */
-function parseJsonc(filePath) {
-  const text = readFileSync(filePath, "utf-8");
-  return JSON.parse(stripJsonComments(text));
-}
-
-/**
- * Try to parse a config file, returning null on any error.
- * @param {string} filePath
- * @returns {PermissionsConfig | null}
- */
-function tryParseConfig(filePath) {
+async function loadConfigFile(filePath) {
   try {
-    return parseJsonc(filePath);
+    if (!existsSync(filePath)) return null;
+    const tempDir = mkdtempSync(join(tmpdir(), "nyolo-cfg-"));
+    const tempFile = join(tempDir, "nyolo.config.js");
+    copyFileSync(filePath, tempFile);
+    try {
+      const mod = await import(pathToFileURL(tempFile).href);
+      const rules = mod.default;
+      if (!Array.isArray(rules)) return null;
+      return { rules, noDefaults: mod.noDefaults === true };
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   } catch {
     return null;
   }
 }
 
 /**
- * Resolve global and project configs separately.
+ * Resolve global and project configs, merge into a flat rules array.
  *
- * Global config (trusted, user-controlled):
- *   1. $CLAUDE_PERMISSIONS_CONFIG env var
- *   2. ~/.claude/permissions.json
+ * Resolution:
+ *   1. Global: ~/.claude/nyolo.config.js (composed via imports, IS the base)
+ *   2. Project: <cwd>/nyolo.config.js (lightweight additions, prepended)
  *
- * Project config (untrusted, may come from a cloned repo):
- *   3. <cwd>/.claude-permissions.json
+ * Merge order (first-match-wins):
+ *   [...projectRules, ...base]
  *
- * @param {string} cwd - Working directory from the hook event
- * @returns {ResolvedConfigs}
+ * Base rules:
+ *   - If a global config exists, it IS the base (no defaults auto-appended)
+ *   - If no global config, `recommended` defaults are used as the base
+ *   - Project configs can export `noDefaults = true` to suppress auto-appended defaults
+ *
+ * @param {string} cwd - Working directory
+ * @param {Object} [opts]
+ * @param {string} [opts.globalConfigPath] - Override global config path (for testing)
+ * @returns {Promise<import("./engine.js").DeclarativeRule[]>}
  */
-export function resolveConfig(cwd) {
-  // Global: env var takes priority, then ~/.claude/permissions.json
-  // Support NYOLO_CONFIG, CLAUDE_PERMISSIONS_CONFIG, and legacy CLAUDE_HOOK_CONFIG
-  let envPath = process.env.NYOLO_CONFIG || process.env.CLAUDE_PERMISSIONS_CONFIG;
-  if (!envPath && process.env.CLAUDE_HOOK_CONFIG) {
-    envPath = process.env.CLAUDE_HOOK_CONFIG;
-    process.stderr.write("[DEPRECATION] CLAUDE_HOOK_CONFIG is deprecated, use NYOLO_CONFIG instead\n");
+export async function resolveConfig(cwd, opts = {}) {
+  const globalPath = opts.globalConfigPath ?? join(homedir(), ".claude", "nyolo.config.js");
+  const projectPath = cwd ? join(cwd, "nyolo.config.js") : null;
+
+  const globalResult = await loadConfigFile(globalPath);
+  const projectResult = projectPath ? await loadConfigFile(projectPath) : null;
+
+  // No configs at all — use recommended defaults
+  if (!globalResult && !projectResult) {
+    return recommended;
   }
 
-  const globalConfig =
-    (envPath && tryParseConfig(envPath)) ||
-    tryParseConfig(join(homedir(), ".claude", "permissions.json"));
+  const projectRules = projectResult?.rules ?? [];
 
-  // Project: <cwd>/.claude-permissions.json
-  const projectConfig = cwd
-    ? tryParseConfig(join(cwd, ".claude-permissions.json"))
-    : null;
+  // Determine base: global config if it exists, otherwise recommended defaults
+  // (unless project opts out with noDefaults)
+  let base;
+  if (globalResult) {
+    base = globalResult.rules;
+  } else if (projectResult?.noDefaults) {
+    base = [];
+  } else {
+    base = recommended;
+  }
 
-  return { global: globalConfig, project: projectConfig };
+  return [...projectRules, ...base];
 }

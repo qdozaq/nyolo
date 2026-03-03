@@ -12,9 +12,8 @@
  */
 
 import { evaluate } from "../src/engine.js";
-import { loadRules } from "../src/rules.js";
 import { resolveConfig } from "../src/config.js";
-import { configure, log } from "../src/logger.js";
+import { log } from "../src/logger.js";
 import { homedir } from "os";
 import { join, dirname } from "path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
@@ -55,10 +54,7 @@ async function runHook() {
     const input = await Bun.stdin.text();
     const event = JSON.parse(input);
 
-    const configs = resolveConfig(event.cwd);
-    configure(configs.global || {});
-
-    const rules = loadRules(configs);
+    const rules = await resolveConfig(event.cwd);
     const result = evaluate(event.tool_name, event.tool_input, rules);
 
     if (result.decision === "deny" || result.decision === "ask") {
@@ -184,8 +180,7 @@ async function runUninstall() {
 async function runTest() {
   console.log("Running nyolo self-test...\n");
 
-  const configs = resolveConfig(process.cwd());
-  const rules = loadRules(configs);
+  const rules = await resolveConfig(process.cwd());
 
   const tests = [
     { tool: "Bash", input: { command: "rm -rf /" }, expected: "deny", label: "rm -rf /" },
@@ -213,8 +208,7 @@ async function runTest() {
 // --- Rules ---
 
 async function runRules() {
-  const configs = resolveConfig(process.cwd());
-  const rules = loadRules(configs);
+  const rules = await resolveConfig(process.cwd());
 
   console.log(`Active rules (${rules.length} total):\n`);
 

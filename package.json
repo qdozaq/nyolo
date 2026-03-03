@@ -4,6 +4,12 @@
   "description": "Safety guardrails for Claude Code — blocks dangerous operations automatically",
   "type": "module",
   "main": "hook.js",
+  "exports": {
+    ".": "./src/rules.js",
+    "./rules": "./src/rules.js",
+    "./defaults": "./src/defaults.js",
+    "./engine": "./src/engine.js"
+  },
   "bin": {
     "nyolo": "bin/nyolo.js"
   },

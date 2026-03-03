@@ -58,50 +58,106 @@ Running with no subcommand (or piped from Claude Code) operates in hook mode: re
 
 ## Customizing rules
 
-Create `~/.claude/permissions.json` to configure global behaviour:
+nyolo uses an ESLint-style flat config: a `nyolo.config.js` file that exports an array of rules.
 
-```jsonc
-{
-  // Prepend custom rules (first-match-wins)
-  "rules": [
-    {
-      "name": "allow-aws-s3-ls",
-      "tool": "Bash",
-      "match": { "command": "aws s3 ls*" },
-      "action": "allow",
-      "reason": "listing is read-only"
-    }
-  ],
+### Project config (no install needed)
 
-  // Disable specific built-in rules by name
-  "disableDefaults": [],
+Drop a `nyolo.config.js` in your project root. No imports required — the 35 recommended defaults are auto-appended after your rules:
 
-  // Set to false to use only your own rules
-  "useDefaults": true,
-
-  // Logging: "debug" | "info" | "warn" | "error" | "silent"
-  "logLevel": "warn",
-
-  // Optional: write logs to a file
-  "logFile": null
-}
+```js
+// <project>/nyolo.config.js
+export default [
+  {
+    name: "allow-terraform-plan",
+    tool: "Bash",
+    match: { command: "terraform plan*" },
+    action: "allow",
+    reason: "terraform plan is read-only",
+  },
+];
+// Defaults are auto-appended after these rules (first-match-wins).
 ```
 
-For project-scoped rules, create `.claude-permissions.json` in your repo root. Project rules are **additive-only** (deny/ask only, no allow overrides) unless you set `"allowProjectOverrides": true` in your global config.
+To use **only** your rules with no defaults:
+
+```js
+export const noDefaults = true;
+export default [
+  // your rules here — no defaults appended
+];
+```
+
+### Global config (composed via imports)
+
+Create `~/.claude/nyolo.config.js` for rules that apply to all projects. The global config **is** the base rule set — install nyolo globally to use imports:
+
+```js
+// ~/.claude/nyolo.config.js
+import { recommended } from "nyolo";
+
+export default [
+  {
+    name: "allow-aws-s3-ls",
+    tool: "Bash",
+    match: { command: "aws s3 ls*" },
+    action: "allow",
+    reason: "listing is read-only",
+  },
+  ...recommended,
+];
+```
+
+Or pick specific categories:
+
+```js
+import { filesystem, git, network } from "nyolo";
+
+export default [...filesystem, ...git, ...network];
+```
+
+### How configs merge
+
+| Scenario | Result |
+|---|---|
+| No configs | All 35 recommended defaults |
+| Project only | `[...projectRules, ...recommended]` |
+| Global only | `[...globalRules]` (global IS the base) |
+| Both | `[...projectRules, ...globalRules]` |
+
+Project rules are always evaluated first (first-match-wins), so a project `allow` rule overrides a global `deny` for the same pattern.
+
+### Available category exports
+
+```js
+import {
+  recommended,  // all 35 defaults
+  filesystem,   // rm -rf /, ~, .
+  cloud,        // aws, gcloud, az, terraform, kubectl, helm, pulumi
+  network,      // curl|bash, npm publish, web fetch
+  git,          // force push, reset --hard, clean -f
+  database,     // DROP TABLE, TRUNCATE
+  system,       // sudo, shutdown, mkfs, chmod 777
+  container,    // docker prune, kubectl delete namespace
+  protection,   // editing nyolo/claude settings files
+  sensitive,    // .env, .ssh
+  warnings,     // kill -9, git branch -D, git stash drop
+  defineConfig, // identity fn for editor autocomplete
+} from "nyolo";
+```
 
 ## Rule format
 
-```jsonc
+```js
 {
-  "name": "my-rule",          // unique name
-  "tool": "Bash|Write|Edit",  // pipe-delimited tool filter (omit for any tool)
-  "match": {
+  name: "my-rule",          // unique name
+  tool: "Bash|Write|Edit",  // pipe-delimited tool filter (omit for any tool)
+  match: {
     // field name → glob pattern (default) or regex object
-    "command": "*dangerous*",
-    "file_path": { "pattern": "\\.env$", "parser": "regex" }
+    command: "*dangerous*",
+    file_path: { pattern: "\\.env$", parser: "regex" },
   },
-  "action": "deny" | "ask" | "allow",
-  "reason": "Explanation shown to Claude"
+  action: "deny",           // "deny" | "ask" | "allow"
+  reason: "Explanation shown to Claude",
 }
 ```
 
