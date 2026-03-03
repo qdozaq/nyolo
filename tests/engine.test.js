@@ -181,6 +181,109 @@ describe("evaluate", () => {
   });
 });
 
+// --- Callback Rule Evaluation ---
+
+describe("evaluate — callback rules", () => {
+  test("callback returning a decision is used", () => {
+    const rule = (toolName, toolInput) =>
+      toolInput.command === "danger" ? { action: "deny", reason: "too dangerous" } : null;
+    const result = evaluate("Bash", { command: "danger" }, [rule]);
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toBe("too dangerous");
+  });
+
+  test("callback returning null skips to next rule", () => {
+    const skip = () => null;
+    const deny = { name: "deny-all", match: () => true, action: "deny", reason: "catch-all" };
+    const result = evaluate("Bash", { command: "anything" }, [skip, deny]);
+    expect(result.decision).toBe("deny");
+    expect(result.rule).toBe("deny-all");
+  });
+
+  test("callback returning undefined skips to next rule", () => {
+    const skip = () => undefined;
+    const deny = { name: "deny-all", match: () => true, action: "deny", reason: "catch-all" };
+    const result = evaluate("Bash", { command: "anything" }, [skip, deny]);
+    expect(result.decision).toBe("deny");
+  });
+
+  test("callback that throws fails closed with error message as reason", () => {
+    const broken = () => { throw new Error("oops"); };
+    const result = evaluate("Bash", { command: "anything" }, [broken]);
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toContain("oops");
+    expect(result.rule).toBe("callback");
+  });
+
+  test("callback that throws stops evaluation (does not fall through to next rule)", () => {
+    const broken = () => { throw new Error("broken"); };
+    const allow = { name: "allow-all", match: () => true, action: "allow", reason: "allow" };
+    const result = evaluate("Bash", { command: "anything" }, [broken, allow]);
+    expect(result.decision).toBe("deny");
+  });
+
+  test("callback that throws with no message gets fallback reason", () => {
+    const broken = () => { throw new Error(); };
+    const result = evaluate("Bash", { command: "anything" }, [broken]);
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toBeTruthy();
+  });
+
+  test("callback mixed with declarative rules preserves first-match-wins", () => {
+    const callback = (toolName, toolInput) =>
+      toolInput.command === "match-me" ? { action: "ask", reason: "via callback" } : null;
+    const declarative = { name: "declarative", match: { command: "*match-me*" }, action: "deny", reason: "declarative" };
+    // callback fires first
+    const result = evaluate("Bash", { command: "match-me" }, [callback, declarative]);
+    expect(result.decision).toBe("ask");
+    expect(result.reason).toBe("via callback");
+  });
+
+  test("callback returning object without action is skipped", () => {
+    const bad = () => ({ reason: "no action field" });
+    const deny = { name: "deny-all", match: () => true, action: "deny", reason: "catch-all" };
+    const result = evaluate("Bash", { command: "anything" }, [bad, deny]);
+    expect(result.decision).toBe("deny");
+  });
+
+  test("callback receives toolName, toolInput, and context with cwd", () => {
+    let capturedTool, capturedInput, capturedContext;
+    const spy = (toolName, toolInput, context) => {
+      capturedTool = toolName;
+      capturedInput = toolInput;
+      capturedContext = context;
+      return null;
+    };
+    evaluate("Write", { file_path: "/tmp/x" }, [spy], { cwd: "/my/project" });
+    expect(capturedTool).toBe("Write");
+    expect(capturedInput).toEqual({ file_path: "/tmp/x" });
+    expect(capturedContext).toEqual({ cwd: "/my/project" });
+  });
+
+  test("callback can use cwd in its decision logic", () => {
+    const rule = (toolName, toolInput, { cwd }) =>
+      cwd === "/restricted" ? { action: "deny", reason: "not in this project" } : null;
+    expect(evaluate("Bash", { command: "ls" }, [rule], { cwd: "/restricted" }).decision).toBe("deny");
+    expect(evaluate("Bash", { command: "ls" }, [rule], { cwd: "/other" }).decision).toBe("allow");
+  });
+
+  test("async callback (returns Promise/thenable) is denied immediately", () => {
+    const asyncRule = async () => ({ action: "allow", reason: "async" });
+    const result = evaluate("Bash", { command: "anything" }, [asyncRule]);
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toBe("async callback rules are not supported");
+  });
+
+  test("async callback denial stops evaluation (does not fall through)", () => {
+    const asyncRule = async () => ({ action: "allow", reason: "async" });
+    const deny = { name: "deny-all", match: () => true, action: "deny", reason: "catch-all" };
+    // async rule fires first — its denial is the result, not the declarative rule
+    const result = evaluate("Bash", { command: "anything" }, [asyncRule, deny]);
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toBe("async callback rules are not supported");
+  });
+});
+
 // --- Declarative Rule Evaluation ---
 
 describe("evaluate — declarative match objects", () => {

@@ -18,8 +18,8 @@ export const recommended = [...defaults];
 
 /**
  * Identity function for editor autocomplete / validation.
- * @param {import("./engine.js").DeclarativeRule[]} rules
- * @returns {import("./engine.js").DeclarativeRule[]}
+ * @param {import("./engine.js").Rule[]} rules
+ * @returns {import("./engine.js").Rule[]}
  */
 export function defineConfig(rules) {
   return rules;

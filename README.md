@@ -163,6 +163,39 @@ import {
 
 Glob patterns use [micromatch](https://github.com/micromatch/micromatch) with extglob support. On `command` fields, `*` matches `/` (relaxed path semantics).
 
+## Callback rules
+
+A rule can also be a plain function for cases where declarative matching isn't expressive enough:
+
+```js
+// nyolo.config.js
+export default [
+  // Callback rule: receives (toolName, toolInput, { cwd }), returns { action, reason } or null
+  (toolName, toolInput, { cwd }) => {
+    if (toolName === "Bash" && /secret/.test(toolInput.command)) {
+      return { action: "deny", reason: "Commands containing 'secret' are not allowed" };
+    }
+    return null; // null or undefined = skip, continue to next rule
+  },
+
+  // Declarative rules can follow — first-match-wins is preserved
+  {
+    name: "allow-ls",
+    tool: "Bash",
+    match: { command: "ls*" },
+    action: "allow",
+    reason: "read-only listing",
+  },
+];
+```
+
+**Callback signature**: `(toolName: string, toolInput: object, context: { cwd: string }) => { action, reason } | null | undefined`
+
+- Return `{ action: "allow" | "deny" | "ask", reason: string }` to make a decision.
+- Return `null` or `undefined` to skip (next rule is evaluated).
+- If the callback throws, evaluation stops and the decision is **deny** with the error message as reason. This is intentional — a thrown error likely means broken safety logic, and failing closed is safer.
+- Async callbacks (returning a Promise) are not supported and will be denied immediately.
+
 ## Build standalone binary
 
 ```bash

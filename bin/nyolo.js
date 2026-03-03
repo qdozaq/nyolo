@@ -55,7 +55,7 @@ async function runHook() {
     const event = JSON.parse(input);
 
     const rules = await resolveConfig(event.cwd);
-    const result = evaluate(event.tool_name, event.tool_input, rules);
+    const result = evaluate(event.tool_name, event.tool_input, rules, { cwd: event.cwd });
 
     if (result.decision === "deny" || result.decision === "ask") {
       const summary = event.tool_name === "Bash"

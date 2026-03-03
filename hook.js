@@ -30,7 +30,7 @@ try {
 
   // Resolve config: flat rules array from nyolo.config.js files
   const rules = await resolveConfig(event.cwd);
-  const result = evaluate(event.tool_name, event.tool_input, rules);
+  const result = evaluate(event.tool_name, event.tool_input, rules, { cwd: event.cwd });
 
   // Output decision
   if (result.decision === "deny" || result.decision === "ask") {

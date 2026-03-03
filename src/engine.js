@@ -17,6 +17,9 @@ import micromatch from "micromatch";
  * @property {PermissionAction} action
  * @property {string} reason
  *
+ * @typedef {(toolName: string, toolInput: Record<string, any>, context: {cwd?: string}) => ({action: PermissionAction, reason: string} | null | undefined)} CallbackRule
+ * @typedef {DeclarativeRule | CallbackRule} Rule
+ *
  * @typedef {Object} EvalResult
  * @property {PermissionAction} decision
  * @property {string} [rule] - Name of the matched rule
@@ -107,11 +110,30 @@ function matchesInput(match, toolInput) {
  * Evaluate tool input against rules using first-match-wins strategy.
  * @param {string} toolName
  * @param {Record<string, any>} toolInput
- * @param {DeclarativeRule[]} rules
+ * @param {Rule[]} rules
+ * @param {{ cwd?: string }} [context]
  * @returns {EvalResult}
  */
-export function evaluate(toolName, toolInput, rules) {
+export function evaluate(toolName, toolInput, rules, context = {}) {
   for (const rule of rules) {
+    // Callback rule: the rule itself is a function
+    if (typeof rule === "function") {
+      try {
+        const result = rule(toolName, toolInput, context);
+        // Async callbacks are not supported — deny immediately
+        if (result != null && typeof result.then === "function") {
+          return { decision: "deny", rule: "callback", reason: "async callback rules are not supported" };
+        }
+        if (result != null && result.action) {
+          return { decision: result.action, rule: "callback", reason: result.reason };
+        }
+      } catch (err) {
+        // Callback threw — fail closed (broken safety logic should not be silently skipped)
+        return { decision: "deny", rule: "callback", reason: `callback rule error: ${err.message}` };
+      }
+      continue;
+    }
+
     try {
       // Check tool filter
       if (rule.tool) {
@@ -134,7 +156,7 @@ export function evaluate(toolName, toolInput, rules) {
         };
       }
     } catch {
-      // If a rule throws, skip it (fail open)
+      // If a declarative rule throws, skip it (fail open)
       continue;
     }
   }

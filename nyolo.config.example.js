@@ -29,6 +29,14 @@ export default [
   //   action: "allow",
   //   reason: "listing is read-only",
   // },
+
+  // Example: callback rule for custom matching logic
+  // (toolName, toolInput, { cwd }) => {
+  //   if (toolName === "Bash" && toolInput.command?.includes("my-sensitive-cmd")) {
+  //     return { action: "deny", reason: "custom rule: my-sensitive-cmd is not allowed" };
+  //   }
+  //   return null; // skip — continue to next rule
+  // },
 ];
 // Recommended defaults are auto-appended after these rules.
 // To suppress defaults, add: export const noDefaults = true;
