@@ -17,7 +17,9 @@
     "bin/",
     "src/",
     "hook.js",
-    "hooks/"
+    "hooks/",
+    "skills/",
+    ".claude-plugin/"
   ],
   "scripts": {
     "test": "bun test",

@@ -196,6 +196,52 @@ export default [
 - If the callback throws, evaluation stops and the decision is **deny** with the error message as reason. This is intentional — a thrown error likely means broken safety logic, and failing closed is safer.
 - Async callbacks (returning a Promise) are not supported and will be denied immediately.
 
+## Claude Code plugin
+
+nyolo ships as a Claude Code plugin with a built-in skill for writing new permission rules.
+
+### Install as a plugin
+
+Add nyolo to a plugin marketplace (e.g. your project's `.claude/plugins.json` or a shared marketplace repo):
+
+```json
+{
+  "plugins": [
+    {
+      "name": "nyolo",
+      "url": "https://github.com/qdozaq/nyolo.git"
+    }
+  ]
+}
+```
+
+Then install from Claude Code:
+
+```
+/plugins install nyolo
+```
+
+Or load directly during development:
+
+```bash
+claude --plugin-dir /path/to/nyolo
+```
+
+### Included skill
+
+**`/nyolo:write-rule`** — interactively creates a new nyolo permission rule. It will:
+
+1. Ask what you want to match (command, file path, URL, etc.)
+2. Ask whether to save the rule at **project** level (`./nyolo.config.js`) or **global** level (`~/.claude/nyolo.config.js`)
+3. Write the rule in the correct format with proper pattern syntax
+
+### Plugin contents
+
+| Component | Description |
+|-----------|-------------|
+| **Hook** (`hooks/hooks.json`) | PreToolUse hook that enforces permission rules |
+| **Skill** (`skills/write-rule/`) | Interactive rule authoring assistant |
+
 ## Build standalone binary
 
 ```bash
