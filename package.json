@@ -1,18 +1,48 @@
 {
   "name": "nyolo",
   "version": "0.1.0",
+  "description": "Safety guardrails for Claude Code — blocks dangerous operations automatically",
   "type": "module",
   "main": "hook.js",
   "bin": {
     "nyolo": "bin/nyolo.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "hook.js",
+    "hooks/",
+    ".claude-plugin/"
+  ],
   "scripts": {
     "test": "bun test",
     "hook": "bun hook.js",
     "build": "bun build --compile bin/nyolo.js --outfile dist/nyolo",
     "build:linux-x64": "bun build --compile --target=bun-linux-x64 bin/nyolo.js --outfile dist/nyolo-linux-x64",
     "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 bin/nyolo.js --outfile dist/nyolo-darwin-arm64",
-    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 bin/nyolo.js --outfile dist/nyolo-darwin-x64"
+    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 bin/nyolo.js --outfile dist/nyolo-darwin-x64",
+    "prepublishOnly": "bun test && bun run build"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "hook",
+    "security",
+    "guardrails",
+    "permissions",
+    "ai-safety"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_ORG/nyolo.git"
+  },
+  "homepage": "https://github.com/YOUR_ORG/nyolo#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_ORG/nyolo/issues"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "dependencies": {
     "micromatch": "^4.0.8"

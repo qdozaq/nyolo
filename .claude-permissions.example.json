@@ -1,0 +1,37 @@
+{
+  // Custom rules (evaluated before defaults, first-match-wins)
+  "rules": [
+    // Example: allow terraform plan (read-only)
+    // {
+    //   "name": "allow-terraform-plan",
+    //   "tool": "Bash",
+    //   "match": { "command": "terraform plan*" },
+    //   "action": "allow",
+    //   "reason": "terraform plan is read-only"
+    // },
+
+    // Example: allow aws s3 ls (read-only listing)
+    // {
+    //   "name": "allow-aws-s3-ls",
+    //   "tool": "Bash",
+    //   "match": { "command": "aws s3 ls*" },
+    //   "action": "allow",
+    //   "reason": "listing is read-only"
+    // }
+  ],
+
+  // Disable specific default rules by name
+  "disableDefaults": [],
+
+  // Set to false to use ONLY your custom rules (no defaults)
+  "useDefaults": true,
+
+  // Allow project-level .claude-permissions.json to use allow rules and disableDefaults
+  "allowProjectOverrides": false,
+
+  // Logging: "debug" | "info" | "warn" | "error" | "silent"
+  "logLevel": "warn",
+
+  // Optional: write logs to a file (null = stderr only)
+  "logFile": null
+}
