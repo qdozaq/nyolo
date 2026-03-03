@@ -1,0 +1,370 @@
+[
+	{
+		"name": "no-rm-rf-root",
+		"description": "Block recursive deletion of root filesystem",
+		"category": "filesystem",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\/(\\s|$|\\*|\\.\\.)",
+				"parser": "regex"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: recursive deletion of root filesystem"
+	},
+	{
+		"name": "no-rm-rf-home",
+		"description": "Block recursive deletion of home directory",
+		"category": "filesystem",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+(~\\/|\\/home\\/|\\$HOME)",
+				"parser": "regex"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: recursive deletion of home directory"
+	},
+	{
+		"name": "no-rm-rf-cwd",
+		"description": "Block recursive deletion of current directory",
+		"category": "filesystem",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\.(\\s|$)",
+				"parser": "regex"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: recursive deletion of current directory"
+	},
+	{
+		"name": "no-cloud-aws",
+		"description": "Block AWS CLI commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": { "pattern": "\\baws\\s", "parser": "regex" } },
+		"action": "ask",
+		"reason": "Blocked: AWS CLI commands are not allowed"
+	},
+	{
+		"name": "no-cloud-gcloud",
+		"description": "Block Google Cloud CLI commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": "*gcloud *" },
+		"action": "ask",
+		"reason": "Blocked: Google Cloud CLI commands are not allowed"
+	},
+	{
+		"name": "no-cloud-az",
+		"description": "Block Azure CLI commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": { "pattern": "\\baz\\s", "parser": "regex" } },
+		"action": "ask",
+		"reason": "Blocked: Azure CLI commands are not allowed"
+	},
+	{
+		"name": "no-cloud-terraform-mutate",
+		"description": "Block Terraform mutating commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": "*terraform @(apply|destroy)*" },
+		"action": "ask",
+		"reason": "Blocked: Terraform apply/destroy commands are not allowed"
+	},
+	{
+		"name": "no-cloud-kubectl-mutate",
+		"description": "Block kubectl mutating commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": "*kubectl @(delete|apply|patch|replace|scale)*" },
+		"action": "ask",
+		"reason": "Blocked: kubectl mutating commands are not allowed"
+	},
+	{
+		"name": "no-cloud-helm-mutate",
+		"description": "Block Helm mutating commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": {
+			"command": "*helm @(install|upgrade|delete|uninstall|rollback)*"
+		},
+		"action": "ask",
+		"reason": "Blocked: Helm mutating commands are not allowed"
+	},
+	{
+		"name": "no-cloud-pulumi-mutate",
+		"description": "Block Pulumi mutating commands",
+		"category": "cloud",
+		"tool": "Bash",
+		"match": { "command": "*pulumi @(up|destroy|cancel)*" },
+		"action": "ask",
+		"reason": "Blocked: Pulumi mutating commands are not allowed"
+	},
+	{
+		"name": "no-curl-pipe-bash",
+		"description": "Block piping curl/wget to shell",
+		"category": "network",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\b(curl|wget)\\s+.*\\|\\s*(bash|sh|zsh)\\b",
+				"parser": "regex"
+			}
+		},
+		"action": "ask",
+		"reason": "Blocked: piping remote content to a shell is dangerous"
+	},
+	{
+		"name": "allow-claude-docs",
+		"description": "Allow web fetches to Claude/Anthropic documentation",
+		"category": "network",
+		"tool": "WebFetch",
+		"match": { "url": "*@(docs.anthropic.com|code.claude.com)*" },
+		"action": "allow",
+		"reason": "Claude documentation is trusted"
+	},
+	{
+		"name": "ask-web-fetch-search",
+		"description": "Ask before any web fetch or web search",
+		"category": "network",
+		"tool": "WebFetch|WebSearch",
+		"match": {},
+		"action": "ask",
+		"reason": "Web fetch/search requires approval"
+	},
+	{
+		"name": "no-npm-publish",
+		"description": "Block npm publish",
+		"category": "network",
+		"tool": "Bash",
+		"match": { "command": "*npm publish*" },
+		"action": "ask",
+		"reason": "Blocked: npm publish is not allowed"
+	},
+	{
+		"name": "no-package-publish",
+		"description": "Block package publishing commands",
+		"category": "network",
+		"tool": "Bash",
+		"match": { "command": "*@(gem push|twine upload|cargo publish)*" },
+		"action": "ask",
+		"reason": "Blocked: package publishing is not allowed"
+	},
+	{
+		"name": "no-git-force-push",
+		"description": "Block git force push",
+		"category": "git",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\bgit\\s+push\\s+.*(-f|--force)(?![-\\w])",
+				"parser": "regex"
+			}
+		},
+		"action": "ask",
+		"reason": "Blocked: git force push can overwrite remote history"
+	},
+	{
+		"name": "no-git-reset-hard",
+		"description": "Block git reset --hard",
+		"category": "git",
+		"tool": "Bash",
+		"match": { "command": "*git reset --hard*" },
+		"action": "ask",
+		"reason": "Blocked: git reset --hard destroys uncommitted changes"
+	},
+	{
+		"name": "no-git-clean-force",
+		"description": "Block git clean -f",
+		"category": "git",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\bgit\\s+clean\\s+.*-[a-zA-Z]*f",
+				"parser": "regex"
+			}
+		},
+		"action": "ask",
+		"reason": "Blocked: git clean -f permanently deletes untracked files"
+	},
+	{
+		"name": "no-git-checkout-discard",
+		"description": "Block git checkout that discards changes",
+		"category": "git",
+		"tool": "Bash",
+		"match": { "command": "*git checkout -- .*" },
+		"action": "ask",
+		"reason": "Blocked: git checkout -- . discards all uncommitted changes"
+	},
+	{
+		"name": "no-db-drop",
+		"description": "Block DROP TABLE/DATABASE",
+		"category": "database",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\bDROP\\s+(TABLE|DATABASE)\\b",
+				"parser": "regex",
+				"flags": "i"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: DROP TABLE/DATABASE is not allowed"
+	},
+	{
+		"name": "no-db-truncate",
+		"description": "Block TRUNCATE",
+		"category": "database",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\bTRUNCATE\\s+(TABLE\\s+)?\\w",
+				"parser": "regex",
+				"flags": "i"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: TRUNCATE is not allowed"
+	},
+	{
+		"name": "no-system-shutdown",
+		"description": "Block system shutdown/reboot",
+		"category": "system",
+		"tool": "Bash",
+		"match": { "command": "@(shutdown|reboot|halt|poweroff)*" },
+		"action": "deny",
+		"reason": "Blocked: system shutdown/reboot commands are not allowed"
+	},
+	{
+		"name": "no-disk-format",
+		"description": "Block disk formatting commands",
+		"category": "system",
+		"tool": "Bash",
+		"match": {
+			"command": {
+				"pattern": "\\b(mkfs|dd\\s+.*of=\\/dev)",
+				"parser": "regex"
+			}
+		},
+		"action": "deny",
+		"reason": "Blocked: disk formatting commands are not allowed"
+	},
+	{
+		"name": "no-chmod-777",
+		"description": "Block chmod 777",
+		"category": "system",
+		"tool": "Bash",
+		"match": { "command": "*chmod ?(-R )777*" },
+		"action": "ask",
+		"reason": "Blocked: chmod 777 creates security vulnerabilities"
+	},
+	{
+		"name": "no-sudo",
+		"description": "Block sudo usage",
+		"category": "system",
+		"tool": "Bash",
+		"match": { "command": { "pattern": "\\bsudo\\s", "parser": "regex" } },
+		"action": "deny",
+		"reason": "Blocked: sudo commands are not allowed"
+	},
+	{
+		"name": "no-docker-prune",
+		"description": "Block docker system prune",
+		"category": "container",
+		"tool": "Bash",
+		"match": { "command": "*docker system prune*" },
+		"action": "ask",
+		"reason": "Blocked: docker system prune removes all unused data"
+	},
+	{
+		"name": "no-kubectl-delete-namespace",
+		"description": "Block kubectl delete namespace",
+		"category": "container",
+		"tool": "Bash",
+		"match": { "command": "*kubectl delete namespace*" },
+		"action": "deny",
+		"reason": "Blocked: deleting a Kubernetes namespace destroys all its resources"
+	},
+	{
+		"name": "no-edit-hook-files",
+		"description": "Block editing nyolo's own source files",
+		"category": "protection",
+		"tool": "Write|Edit",
+		"match": {
+			"file_path": "**/nyolo/{hook.js,bin/**,src/**,config.js}"
+		},
+		"action": "ask",
+		"reason": "Blocked: editing nyolo's own files is not allowed"
+	},
+	{
+		"name": "no-edit-claude-settings",
+		"description": "Block editing Claude Code settings",
+		"category": "protection",
+		"tool": "Write|Edit",
+		"match": {
+			"file_path": "**/.claude/{settings.json,settings.local.json}"
+		},
+		"action": "ask",
+		"reason": "Blocked: editing Claude Code settings files is not allowed"
+	},
+	{
+		"name": "no-write-env",
+		"description": "Block writing to .env files",
+		"category": "sensitive",
+		"tool": "Write|Edit",
+		"match": { "file_path": "**/{.env,.env.*}" },
+		"action": "ask",
+		"reason": "Blocked: writing to .env files may expose secrets"
+	},
+	{
+		"name": "no-write-ssh",
+		"description": "Block writing to SSH keys",
+		"category": "sensitive",
+		"tool": "Write|Edit",
+		"match": { "file_path": "**/.ssh/**" },
+		"action": "deny",
+		"reason": "Blocked: writing to SSH directory is not allowed"
+	},
+	{
+		"name": "warn-git-branch-delete",
+		"description": "Warn on git branch force delete",
+		"category": "warnings",
+		"tool": "Bash",
+		"match": { "command": "*git branch -D*" },
+		"action": "ask",
+		"reason": "git branch -D force-deletes a branch without checking merge status"
+	},
+	{
+		"name": "warn-git-stash-drop",
+		"description": "Warn on git stash drop/clear",
+		"category": "warnings",
+		"tool": "Bash",
+		"match": { "command": "*git stash @(drop|clear)*" },
+		"action": "ask",
+		"reason": "git stash drop/clear permanently removes stashed changes"
+	},
+	{
+		"name": "warn-kill-signal",
+		"description": "Warn on kill -9 / killall",
+		"category": "warnings",
+		"tool": "Bash",
+		"match": { "command": "*@(kill -9|killall)*" },
+		"action": "ask",
+		"reason": "Forceful process termination - confirm this is intended"
+	},
+	{
+		"name": "warn-service-stop",
+		"description": "Warn on service/systemctl stop",
+		"category": "warnings",
+		"tool": "Bash",
+		"match": { "command": "*@(service * stop|systemctl stop)*" },
+		"action": "ask",
+		"reason": "Stopping a system service - confirm this is intended"
+	}
+]

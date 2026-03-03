@@ -1,0 +1,20 @@
+{
+  "name": "nyolo",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "hook.js",
+  "bin": {
+    "nyolo": "bin/nyolo.js"
+  },
+  "scripts": {
+    "test": "bun test",
+    "hook": "bun hook.js",
+    "build": "bun build --compile bin/nyolo.js --outfile dist/nyolo",
+    "build:linux-x64": "bun build --compile --target=bun-linux-x64 bin/nyolo.js --outfile dist/nyolo-linux-x64",
+    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 bin/nyolo.js --outfile dist/nyolo-darwin-arm64",
+    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 bin/nyolo.js --outfile dist/nyolo-darwin-x64"
+  },
+  "dependencies": {
+    "micromatch": "^4.0.8"
+  }
+}
