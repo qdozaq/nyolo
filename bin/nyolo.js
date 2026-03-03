@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /**
  * nyolo CLI entry point
@@ -49,15 +49,9 @@ switch (subcommand) {
 
 // --- Hook mode ---
 
-async function readStdin() {
-  const chunks = [];
-  for await (const chunk of process.stdin) chunks.push(chunk);
-  return Buffer.concat(chunks).toString();
-}
-
 async function runHook() {
   try {
-    const input = await readStdin();
+    const input = await Bun.stdin.text();
     const event = JSON.parse(input);
 
     const configs = resolveConfig(event.cwd);

@@ -1,5 +1,3 @@
-import { appendFileSync } from "fs";
-
 /**
  * @typedef {"debug" | "info" | "warn" | "error" | "silent"} LogLevel
  *
@@ -36,6 +34,6 @@ export function log(lvl, message) {
   const line = `[${new Date().toISOString()}] [${lvl.toUpperCase()}] ${message}`;
   process.stderr.write(line + "\n");
   if (logFile) {
-    try { appendFileSync(logFile, line + "\n"); } catch {}
+    Bun.write(Bun.file(logFile), line + "\n").catch(() => {});
   }
 }
