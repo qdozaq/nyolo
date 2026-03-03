@@ -1,8 +1,0 @@
-{
-  "name": "nyolo",
-  "version": "0.1.0",
-  "description": "Safety guardrails for Claude Code — blocks dangerous operations like rm -rf /, sudo, force pushes, and cloud CLI mutations.",
-  "author": "nyolo contributors",
-  "license": "MIT",
-  "hooks": "../hooks/hooks.json"
-}
