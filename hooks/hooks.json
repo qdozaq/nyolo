@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx nyolo"
+            "command": "bun nyolo"
           }
         ]
       }

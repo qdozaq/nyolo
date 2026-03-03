@@ -18,6 +18,7 @@ import { configure, log } from "../src/logger.js";
 import { homedir } from "os";
 import { join, dirname } from "path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { fileURLToPath } from "url";
 
 const args = process.argv.slice(2);
 const subcommand = args[0];
@@ -93,7 +94,8 @@ function getSettingsPath() {
 }
 
 function getHookCmd() {
-  return "npx nyolo";
+  const selfPath = fileURLToPath(import.meta.url);
+  return `bun "${selfPath}"`;
 }
 
 async function runInstall() {

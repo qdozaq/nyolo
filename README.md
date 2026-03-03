@@ -4,13 +4,18 @@ Run Claude Code autonomously — with safety guardrails.
 
 **nyolo** is a `PreToolUse` hook for Claude Code that automatically blocks or requires confirmation for dangerous operations: recursive deletes, cloud CLI mutations, force pushes, sudo, and more.
 
+## Requirements
+
+- [Bun](https://bun.sh) v1.0+
+
 ## Quick start
 
 ```bash
+# One-liner (requires bun)
 npx nyolo install
 ```
 
-That's it. Restart Claude Code and nyolo will protect your next session.
+That's it. The install command registers the hook in `~/.claude/settings.json` with a direct path to the binary — no npx overhead on each tool call.
 
 ## What gets blocked
 
