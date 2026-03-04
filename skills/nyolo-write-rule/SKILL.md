@@ -1,5 +1,5 @@
 ---
-name: write-rule
+name: nyolo-write-rule
 description: |
   Write new nyolo permission rules for Claude Code safety guardrails.
   Use when the user wants to create, add, or write a nyolo rule to allow, deny, or ask

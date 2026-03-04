@@ -18,8 +18,7 @@
     "src/",
     "hook.js",
     "hooks/",
-    "skills/",
-    ".claude-plugin/"
+    "skills/"
   ],
   "scripts": {
     "test": "bun test",
