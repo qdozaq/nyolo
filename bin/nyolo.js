@@ -6,7 +6,6 @@
  * Usage:
  *   nyolo install     - install hook into ~/.claude/settings.json
  *   nyolo uninstall   - remove hook from ~/.claude/settings.json
- *   nyolo test        - run a quick self-test
  *   nyolo rules       - list active rules
  *   nyolo             - hook mode (reads stdin JSON, evaluates rules)
  */
@@ -35,15 +34,12 @@ switch (subcommand) {
   case "uninstall":
     await runUninstall();
     break;
-  case "test":
-    await runTest();
-    break;
   case "rules":
     await runRules();
     break;
   default:
     console.error(`Unknown subcommand: ${subcommand}`);
-    console.error("Usage: nyolo [install|uninstall|test|rules]");
+    console.error("Usage: nyolo [install|uninstall|rules]");
     process.exit(1);
 }
 
@@ -173,36 +169,6 @@ async function runUninstall() {
 
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
   console.log(`nyolo hook removed from ${settingsPath}`);
-}
-
-// --- Test ---
-
-async function runTest() {
-  console.log("Running nyolo self-test...\n");
-
-  const rules = await resolveConfig(process.cwd());
-
-  const tests = [
-    { tool: "Bash", input: { command: "rm -rf /" }, expected: "deny", label: "rm -rf /" },
-    { tool: "Bash", input: { command: "sudo apt-get update" }, expected: "deny", label: "sudo" },
-    { tool: "Bash", input: { command: "ls -la" }, expected: "allow", label: "ls -la" },
-    { tool: "Write", input: { file_path: "/project/.env" }, expected: "ask", label: "write .env" },
-  ];
-
-  let passed = 0;
-  let failed = 0;
-
-  for (const t of tests) {
-    const result = evaluate(t.tool, t.input, rules);
-    const ok = result.decision === t.expected;
-    const status = ok ? "PASS" : "FAIL";
-    console.log(`  [${status}] ${t.label}: ${result.decision} (expected ${t.expected})`);
-    if (ok) passed++; else failed++;
-  }
-
-  console.log(`\n${passed} passed, ${failed} failed`);
-
-  if (failed > 0) process.exit(1);
 }
 
 // --- Rules ---
