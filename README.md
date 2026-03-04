@@ -50,7 +50,6 @@ npx nyolo uninstall
 ```bash
 nyolo install    # add hook to ~/.claude/settings.json
 nyolo uninstall  # remove hook from ~/.claude/settings.json
-nyolo test       # run quick self-test against active rules
 nyolo rules      # list all active rules with their actions
 ```
 
