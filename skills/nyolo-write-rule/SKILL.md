@@ -43,11 +43,11 @@ Use AskUserQuestion to ask the user:
   match: {
     // field → pattern (AND logic across fields)
     command: "*pattern*",               // glob (default) — micromatch with extglob
-    // OR regex:
-    // command: { pattern: "\\bword\\b", parser: "regex", flags: "i" },
     // file_path: "**/.env",            // glob with path semantics
     // url: "*example.com*",            // for WebFetch
     // query: "*secret*",              // for WebSearch
+    // For complex matching, use regex instead of glob:
+    // command: { pattern: "sudo\\s", parser: "regex", flags: "i" },
   },
   action: "deny",                        // "deny" | "ask" | "allow"
   reason: "Explanation shown to Claude",
@@ -65,8 +65,8 @@ Use AskUserQuestion to ask the user:
 
 ### Pattern tips
 
-- **Glob (default)**: `"*dangerous*"` — uses micromatch with extglob (`@()`, `!()`, `*()`, `+()`, `?()`)
-- **Regex**: `{ pattern: "\\bsudo\\s", parser: "regex" }` — for complex matching
+- **Glob (preferred)**: `"*dangerous*"` — uses micromatch with extglob (`@()`, `!()`, `*()`, `+()`, `?()`)
+- **Regex**: `{ pattern: "sudo\\s", parser: "regex" }` — only when glob can't express the match
 - **Regex flags**: `{ pattern: "DROP TABLE", parser: "regex", flags: "i" }` — case-insensitive
 - For `command` fields, `*` matches `/` (relaxed path semantics)
 - For `file_path` fields, standard path glob semantics apply (`*` does NOT match `/`)
