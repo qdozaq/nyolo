@@ -515,28 +515,6 @@ describe("default rules - warning tier (ask)", () => {
 // --- Hook Self-Protection (Write/Edit) ---
 
 describe("default rules - hook self-protection", () => {
-  test("asks on editing hook.js", () => {
-    const result = checkFile("Edit", "/project/.claude/hooks/nyolo/hook.js");
-    expect(result.decision).toBe("ask");
-    expect(result.rule).toBe("no-edit-hook-files");
-  });
-
-  test("asks on writing to src/engine.js", () => {
-    expect(checkFile("Write", "/project/.claude/hooks/nyolo/src/engine.js").decision).toBe("ask");
-  });
-
-  test("asks on writing to src/rules.js", () => {
-    expect(checkFile("Write", "/project/.claude/hooks/nyolo/src/rules.js").decision).toBe("ask");
-  });
-
-  test("asks on writing to src/logger.js", () => {
-    expect(checkFile("Write", "/project/.claude/hooks/nyolo/src/logger.js").decision).toBe("ask");
-  });
-
-  test("asks on editing config.js", () => {
-    expect(checkFile("Edit", "/project/.claude/hooks/nyolo/config.js").decision).toBe("ask");
-  });
-
   test("asks on writing to .claude/settings.json", () => {
     const result = checkFile("Write", "/project/.claude/settings.json");
     expect(result.decision).toBe("ask");
@@ -749,7 +727,7 @@ describe("category exports", () => {
       database: ["no-db-drop", "no-db-truncate"],
       system: ["no-system-shutdown", "no-disk-format", "no-chmod-777", "no-sudo"],
       container: ["no-docker-prune", "no-kubectl-delete-namespace"],
-      protection: ["no-edit-hook-files", "no-edit-claude-settings"],
+      protection: ["no-edit-claude-settings"],
       sensitive: ["no-write-env", "no-write-ssh"],
       warnings: ["warn-git-branch-delete", "warn-git-stash-drop", "warn-kill-signal", "warn-service-stop"],
     };
@@ -852,7 +830,7 @@ describe("defaults structure", () => {
     }
   });
 
-  test("defaults count is 35 rules", () => {
-    expect(defaults.length).toBe(35);
+  test("defaults count is 34 rules", () => {
+    expect(defaults.length).toBe(34);
   });
 });

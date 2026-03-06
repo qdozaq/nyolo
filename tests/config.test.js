@@ -31,7 +31,7 @@ function writeConfig(dir, content) {
 describe("resolveConfig — no configs", () => {
   test("returns recommended defaults when no config files exist", async () => {
     const rules = await resolveConfig(testDir, noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
     expect(rules[0].name).toBe("no-rm-rf-root");
   });
 });
@@ -48,7 +48,7 @@ describe("resolveConfig — project config only", () => {
     const rules = await resolveConfig(testDir, noGlobal);
     expect(rules[0].name).toBe("proj-deny");
     // Defaults are auto-appended
-    expect(rules.length).toBe(1 + 35);
+    expect(rules.length).toBe(1 + 34);
     expect(rules[1].name).toBe("no-rm-rf-root");
   });
 
@@ -94,7 +94,7 @@ describe("resolveConfig — project config only", () => {
       ];
     `);
     const rules = await resolveConfig(testDir, noGlobal);
-    expect(rules.length).toBe(1 + 35);
+    expect(rules.length).toBe(1 + 34);
   });
 });
 
@@ -167,13 +167,13 @@ describe("resolveConfig — error handling", () => {
   test("handles malformed config gracefully (returns defaults)", async () => {
     writeConfig(testDir, `export default "not an array";`);
     const rules = await resolveConfig(testDir, noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
   });
 
   test("handles syntax error in config gracefully", async () => {
     writeConfig(testDir, `export default [[[broken`);
     const rules = await resolveConfig(testDir, noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
   });
 });
 
@@ -182,18 +182,18 @@ describe("resolveConfig — error handling", () => {
 describe("resolveConfig — edge cases", () => {
   test("handles null cwd", async () => {
     const rules = await resolveConfig(null, noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
   });
 
   test("handles nonexistent cwd directory", async () => {
     const rules = await resolveConfig("/nonexistent/path/to/nowhere", noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
   });
 
   test("empty project config with no global gets defaults", async () => {
     writeConfig(testDir, `export default [];`);
     const rules = await resolveConfig(testDir, noGlobal);
-    expect(rules.length).toBe(35);
+    expect(rules.length).toBe(34);
   });
 
   test("empty project config with noDefaults gets empty", async () => {
