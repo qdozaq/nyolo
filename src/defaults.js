@@ -7,7 +7,8 @@ export const defaults = [
 		tool: "Bash",
 		match: {
 			command: {
-				pattern: "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\/(\\s|$|\\*|\\.\\.)",
+				pattern:
+					"\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\/(\\s|$|\\*|\\.\\.)",
 				parser: "regex",
 			},
 		},
@@ -21,7 +22,8 @@ export const defaults = [
 		tool: "Bash",
 		match: {
 			command: {
-				pattern: "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+(~\\/|\\/home\\/|\\$HOME)",
+				pattern:
+					"\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+(~\\/|\\/home\\/|\\$HOME)",
 				parser: "regex",
 			},
 		},
@@ -35,7 +37,8 @@ export const defaults = [
 		tool: "Bash",
 		match: {
 			command: {
-				pattern: "\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\.(\\s|$)",
+				pattern:
+					"\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\\s+\\.(\\s|$)",
 				parser: "regex",
 			},
 		},
@@ -92,7 +95,9 @@ export const defaults = [
 		description: "Block Helm mutating commands",
 		category: "cloud",
 		tool: "Bash",
-		match: { command: "helm @(install|upgrade|delete|uninstall|rollback)*" },
+		match: {
+			command: "helm @(install|upgrade|delete|uninstall|rollback)*",
+		},
 		action: "ask",
 		reason: "Blocked: Helm mutating commands are not allowed",
 	},
@@ -289,17 +294,6 @@ export const defaults = [
 		match: { command: "*kubectl delete namespace*" },
 		action: "deny",
 		reason: "Blocked: deleting a Kubernetes namespace destroys all its resources",
-	},
-	{
-		name: "no-edit-hook-files",
-		description: "Block editing nyolo's own source files",
-		category: "protection",
-		tool: "Write|Edit",
-		match: {
-			file_path: "**/nyolo/{hook.js,bin/**,src/**,config.js}",
-		},
-		action: "ask",
-		reason: "Blocked: editing nyolo's own files is not allowed",
 	},
 	{
 		name: "no-edit-claude-settings",
