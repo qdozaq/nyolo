@@ -6,7 +6,7 @@ Run Claude Code using `--dangerously-skip-permissions` — with safety guardrail
 
 ## Requirements
 
-- [Bun](https://bun.sh) v1.0+
+- [Bun](https://bun.com) v1.0+
 
 ## Quick start
 
